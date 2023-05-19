@@ -1,6 +1,7 @@
 import json
 import config
 from neo4j import GraphDatabase
+import time
 
 URI = config.NEO4J_URI
 USER = config.NEO4J_USER
@@ -40,4 +41,7 @@ class Neo4jConnection:
         return response
 
 connection = Neo4jConnection(URI, USER, PASS)
-    
+query = ('MATCH (n) WHERE n.name = "APT1"'
+         'RETURN n')
+print(connection.query(query))
+connection.close()
