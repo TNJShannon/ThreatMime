@@ -41,22 +41,27 @@ class Neo4jConnection:
         return response
 
 def create_SDO_node(SDO_object,db_connection):
+    #Check if SDO_node exists
+    result = db_connection.query(f'MATCH (n) WHERE n.id = "{object["id"]}" RETURN (n)')
+    if len(result):
+        print(f'{SDO_object["id"]} already exists in database')
+        return
     query_command = [f'CREATE ({util.sanitize(SDO_object["type"])}:{util.sanitize(SDO_object["type"])}:SDO)']
     for key,value in SDO_object.items():
-        query_command.append(f'SET {util.sanitize(SDO_object["type"])}.{key}="{util.sanitize(str(value))}"')
+        query_command.append(f'SET {util.sanitize(SDO_object["type"])}.{key}="{value}"')
     query_command = "\n".join(query_command)
     db_connection.query(query_command)
 
 def create_SRO_connection(SRO_object,db_connection):
     #Check if SRO_connection already exists
-    result = connection.query(f'MATCH ()-[r]->() WHERE r.name = "{SRO_object["id"]}" RETURN r')
+    result = connection.query(f'MATCH ()-[r]->() WHERE r.id = "{SRO_object["id"]}" RETURN r')
     if len(result):
         print("Link already exists")
         return
     query_command = [f'MATCH (x) WHERE x.id = "{SRO_object["source_ref"]}" MATCH (y) WHERE y.id = "{SRO_object["target_ref"]}"']
     SRO_properties = "{"
     for key,value in SRO_object.items():
-        SRO_properties += f'{key}:"{util.sanitize(str(value))}",'
+        SRO_properties += f'{key}:"{value}",'
     SRO_properties = SRO_properties[:-1] + "}"
     query_command.append(f'CREATE (x)-[:SRO {SRO_properties}]->(y)')
     query_command = "\n".join(query_command)
@@ -70,10 +75,6 @@ bundle_id = source["id"]
 
 #create node for every object in bundle
 for object in source["objects"]:
-    #Check if Object exists in database via ID
-    result = connection.query(f'MATCH (n) Where n.id = "{object["id"]}" RETURN n')
-    if len(result):
-        continue
     match object["type"]:
         case "relationship":
             create_SRO_connection(object,connection)
