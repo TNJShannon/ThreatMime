@@ -40,17 +40,20 @@ class Neo4jConnection:
                 session.close()
         return response
 
+
 def create_SDO_node(SDO_object,db_connection):
     #Check if SDO_node exists
     result = db_connection.query(f'MATCH (n) WHERE n.id = "{object["id"]}" RETURN (n)')
     if len(result):
         print(f'{SDO_object["id"]} already exists in database')
         return
+    
     query_command = [f'CREATE ({util.sanitize(SDO_object["type"])}:{util.sanitize(SDO_object["type"])}:SDO)']
     for key,value in SDO_object.items():
         query_command.append(f'SET {util.sanitize(SDO_object["type"])}.{key}="{value}"')
     query_command = "\n".join(query_command)
     db_connection.query(query_command)
+
 
 def create_SRO_connection(SRO_object,db_connection):
     #Check if SRO_connection already exists
@@ -63,13 +66,15 @@ def create_SRO_connection(SRO_object,db_connection):
     for key,value in SRO_object.items():
         SRO_properties += f'{key}:"{value}",'
     SRO_properties = SRO_properties[:-1] + "}"
-    query_command.append(f'CREATE (x)-[:SRO {SRO_properties}]->(y)')
+    query_command.append(f'CREATE (x)-[:{util.sanitize(SRO_object["relationship_type"])} {SRO_properties}]->(y)')
     query_command = "\n".join(query_command)
     db_connection.query(query_command)
+
+
 #Try create connection to database
 connection = Neo4jConnection(URI, USER, PASS)
 
-source = json.load(open("stix-test-data\mandient_apt_1.json",'r',encoding="utf-8"))
+source = json.load(open("stix-test-data\poisonivy.json",'r',encoding="utf-8"))
 #convert Stix Bundle into querys
 bundle_id = source["id"]
 
