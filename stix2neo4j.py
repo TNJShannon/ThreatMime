@@ -2,7 +2,6 @@ import json
 import config
 import util
 from neo4j import GraphDatabase
-import time
 
 URI = config.NEO4J_URI
 USER = config.NEO4J_USER
@@ -70,6 +69,16 @@ def create_SRO_connection(SRO_object,db_connection):
     query_command = "\n".join(query_command)
     db_connection.query(query_command)
 
+def attribute_report_references(SDO_report,db_connection):
+    for SDO_id in SDO_report["object_refs"]:
+        #check if id is already referenced
+        result = db_connection.query(f'MATCH (x) WHERE x.id = "{SDO_report["id"]}" MATCH (y) WHERE y.id = "{SDO_id}" MATCH (x)-[r]->(y) RETURN r')
+        if len(result):
+            print(f'Report already links to {SDO_id}')
+            return
+        else:
+            db_connection.query(f'MATCH (x) WHERE x.id = "{SDO_report["id"]}" MATCH (y) WHERE y.id = "{SDO_id}" CREATE (x)-[:OBJECT_REFS]->(y)')
+        
 
 #Try create connection to database
 connection = Neo4jConnection(URI, USER, PASS)
@@ -87,6 +96,8 @@ for object in source["objects"]:
             "Sighting SRO's not currently implemented"
         case _:
             create_SDO_node(object,connection)
+    if object["type"] == "report":
+        attribute_report_references(object,connection)
 
 
 
