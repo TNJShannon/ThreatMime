@@ -54,7 +54,7 @@ def create_SDO_node(SDO_object,db_connection):
     db_connection.query(query_command)
 
 
-def create_SRO_connection(SRO_object,db_connection):
+def create_SRO_link(SRO_object,db_connection):
     #Check if SRO_connection already exists
     result = connection.query(f'MATCH ()-[r]->() WHERE r.id = "{SRO_object["id"]}" RETURN r')
     if len(result):
@@ -78,37 +78,27 @@ def attribute_report_references(SDO_report,db_connection):
             return
         else:
             db_connection.query(f'MATCH (x) WHERE x.id = "{SDO_report["id"]}" MATCH (y) WHERE y.id = "{SDO_id}" CREATE (x)-[:OBJECT_REFS]->(y)')
-        
+
+def store_stix_bundle(source,db_connection):
+    #convert Stix Bundle into querys
+    bundle_id = source["id"]
+    for object in source["objects"]:
+        match object["type"]:
+            case "relationship":
+                create_SRO_link(object,connection)
+            case "sighting":
+                "Sighting SRO's not currently implemented"
+            case _:
+                create_SDO_node(object,connection)
+        if object["type"] == "report":
+            attribute_report_references(object,connection)
 
 #Try create connection to database
 connection = Neo4jConnection(URI, USER, PASS)
 
 source = json.load(open("stix-test-data\poisonivy.json",'r',encoding="utf-8"))
-#convert Stix Bundle into querys
-bundle_id = source["id"]
 
-#create node for every object in bundle
-for object in source["objects"]:
-    match object["type"]:
-        case "relationship":
-            create_SRO_connection(object,connection)
-        case "sighting":
-            "Sighting SRO's not currently implemented"
-        case _:
-            create_SDO_node(object,connection)
-    if object["type"] == "report":
-        attribute_report_references(object,connection)
+store_stix_bundle(source,connection)
 
-
-
-
-
-
-
-
-#upload stix data
-
-
-
-#close database
+#close database connection
 connection.close()
